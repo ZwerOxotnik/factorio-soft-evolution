@@ -5,9 +5,9 @@ License: MIT
 Version: 1.0.0 (2019.01.29)
 Source: https://gitlab.com/ZwerOxotnik/soft-evolution
 Mod portal: https://mods.factorio.com/mod/soft-evolution
-Homepage:
-Description: Evolution depend on players, researchers, teams,
-             destroyed buildings, launched rockets with settings.
+Homepage: https://forums.factorio.com/viewtopic.php?f=190&t=64653
+Description: Evolution depend on players, research with different accounting,
+             teams, destroyed buildings, launched rockets. There are settings.
              Compatible with any PvP scenario. UPS friendly.
 ]]--
 
