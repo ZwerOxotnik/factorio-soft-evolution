@@ -1,0 +1,12 @@
+{
+    "name": "soft-evolution",
+    "version": "1.0.0",
+    "factorio_version": "0.16",
+    "title": "Soft evolution",
+    "author": "ZwerOxotnik",
+    "contact": "zweroxotnik@gmail.com, https://steamcommunity.com/id/ZwerOxotnik",
+    "source": "https://gitlab.com/ZwerOxotnik/soft-evolution",
+    "homepage": "https://mods.factorio.com/mod/soft-evolution",
+    "description": "Evolution depend on players, research with different accounting, teams, destroyed buildings, launched rockets. There are settings. Compatible with any PvP scenario. UPS friendly.",
+    "dependencies": []
+}
