@@ -2,7 +2,7 @@
 Soft evolution
 Copyright (c) 2019 ZwerOxotnik <zweroxotnik@gmail.com>
 License: MIT
-Version: 1.0.0 (2019.01.29)
+Version: 1.0.1 (2019.01.31)
 Source: https://gitlab.com/ZwerOxotnik/soft-evolution
 Mod portal: https://mods.factorio.com/mod/soft-evolution
 Homepage: https://forums.factorio.com/viewtopic.php?f=190&t=64653
@@ -145,11 +145,11 @@ end
 
 local function init()
   global.soft_evolution = global.soft_evolution or {}
-  local mod = global.soft_evolution
-  mod.teams = mod.teams or nil
-  mod.tick_of_update = mod.tick_of_update -- see function "check_researches_on_nth_tick"
-  mod.compensating_bonus = mod.compensating_bonus or 1 -- see event "on_entity_died"
-  mod.dynamic_bonus = mod.dynamic_bonus or 1 -- see function "check_map_settings"
+  local soft_evolution = global.soft_evolution
+  soft_evolution.teams = soft_evolution.teams or nil
+  soft_evolution.tick_of_update = soft_evolution.tick_of_update -- see function "check_researches_on_nth_tick"
+  soft_evolution.compensating_bonus = soft_evolution.compensating_bonus or 1 -- see event "on_entity_died"
+  soft_evolution.dynamic_bonus = soft_evolution.dynamic_bonus or 1 -- see function "check_map_settings"
 end
 
 local function update_research_timer()
@@ -191,7 +191,8 @@ local function change_map_settings()
   local original_data = soft_evolution.original
   local map_settings = game.map_settings
   local enemy_evolution = map_settings.enemy_evolution
-  local enemy_expansion = game.enemy_expansion
+  local enemy_expansion = map_settings.enemy_expansion
+  log(math.floor(original_data.settler_group_min_size * dynamic_bonus))
   map_settings.settler_group_min_size = math.floor(original_data.settler_group_min_size * dynamic_bonus)
   map_settings.settler_group_max_size = math.ceil(original_data.settler_group_max_size * dynamic_bonus)
   enemy_expansion.max_expansion_distance = math.ceil(original_data.max_expansion_distance * dynamic_bonus)
@@ -204,11 +205,11 @@ local function change_map_settings()
   else
     enemy_evolution.time_factor = original_data.time_factor * dynamic_bonus
   end
-  if map_settings.settler_group_min_size < 1 then
-    map_settings.settler_group_min_size = 1
+  if enemy_expansion.settler_group_min_size < 1 then
+    enemy_expansion.settler_group_min_size = 1
   end
-  if map_settings.settler_group_max_size < 1 then
-    map_settings.settler_group_max_size = 1
+  if enemy_expansion.settler_group_max_size < 1 then
+    enemy_expansion.settler_group_max_size = 1
   end
 end
 
@@ -223,15 +224,15 @@ local function check_map_settings(event)
   local original_data = global.soft_evolution.original
   if not original_data then
     original_data = {}
-    original_data = global.soft_evolution.original
     local map_settings = game.map_settings
     local enemy_expansion = map_settings.enemy_expansion
     original_data.time_factor = map_settings.enemy_evolution.time_factor
-    original_data.settler_group_min_size = map_settings.settler_group_min_size
-    original_data.settler_group_max_size = map_settings.settler_group_max_size
+    original_data.settler_group_min_size = enemy_expansion.settler_group_min_size
+    original_data.settler_group_max_size = enemy_expansion.settler_group_max_size
     original_data.max_expansion_distance = enemy_expansion.max_expansion_distance
     original_data.min_expansion_cooldown = enemy_expansion.min_expansion_cooldown
     original_data.max_expansion_cooldown = enemy_expansion.max_expansion_cooldown
+    global.soft_evolution.original = original_data
   end
 
   change_map_settings()
