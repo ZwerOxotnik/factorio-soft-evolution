@@ -13,7 +13,7 @@ Description: Evolution depend on players, research with different accounting,
 
 local mod = {}
 mod.self_events = require("soft_evolution/self_events")
-mod.version = "1.0.0"
+mod.version = "1.0.1"
 
 local function reset_compensating_bonus()
   local count = 1 - global.soft_evolution.compensating_bonus
