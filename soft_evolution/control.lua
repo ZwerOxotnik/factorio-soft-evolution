@@ -225,7 +225,7 @@ local function check_map_settings(event)
     original_data = {}
     original_data = global.soft_evolution.original
     local map_settings = game.map_settings
-    local enemy_expansion = game.enemy_expansion
+    local enemy_expansion = map_settings.enemy_expansion
     original_data.time_factor = map_settings.enemy_evolution.time_factor
     original_data.settler_group_min_size = map_settings.settler_group_min_size
     original_data.settler_group_max_size = map_settings.settler_group_max_size
