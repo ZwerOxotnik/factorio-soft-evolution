@@ -15,7 +15,7 @@
 * [Запросить функцию](#feature)
 * [Установка](#installing)
 * [Зависимости](#dependencies)
-    * [Встроенные](#embedded)
+    * [Необходимые](#required)
 * [Лицензия](#license)
 
 ## <a name="overview"></a> Введение
@@ -44,11 +44,11 @@
 Если вы скачали исходный архив (GitLab):
 
 * скопируйте данный мод в директорию модов Factorio
-* переименуйте данный мод в event-listener_*версия*, где *версия* это версия мода, которую вы скачали (например, 2.0.0)
+* переименуйте данный мод в event-listener_*версия*, где *версия* это версия мода, которую вы скачали (например, 1.1.0)
 
 ## <a name="dependencies"></a> Зависимости
 
-### <a name="embedded"></a> Встроенные
+### <a name="required"></a> Встроенные
 
 * Event listener: [mods.factorio.com](https://mods.factorio.com/mod/event-listener), [GitLab](https://gitlab.com/ZwerOxotnik/event-listener)
 

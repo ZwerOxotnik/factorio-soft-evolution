@@ -1,28 +1,54 @@
 --[[
-Soft evolution
 Copyright (c) 2019 ZwerOxotnik <zweroxotnik@gmail.com>
-License: MIT
-Version: 1.0.1 (2019.01.31)
+Licensed under the MIT licence;
+Author: ZwerOxotnik
+Version: 1.1.0 (2019-05-03)
+
+You can write and receive any information on the links below.
 Source: https://gitlab.com/ZwerOxotnik/soft-evolution
 Mod portal: https://mods.factorio.com/mod/soft-evolution
 Homepage: https://forums.factorio.com/viewtopic.php?f=190&t=64653
-Description: Evolution depend on players, research with different accounting,
-             teams, destroyed buildings, launched rockets. There are settings.
-             Compatible with any PvP scenario. UPS friendly.
+
 ]]--
 
-local mod = {}
-mod.self_events = require("soft_evolution/self_events")
-mod.version = "1.0.1"
+local module = {}
+module.self_events = require("soft_evolution/self_events")
+module.events = {}
+module.version = "1.1.0"
+
+local function get_event(event)
+	if type(event) == "number" then
+		return event
+	else
+		return defines.events[event] --or event
+	end
+end
+
+-- This function for compatibility with "Event listener" module and into other modules
+local function put_event(event, func)
+	event = get_event(event)
+	if event then
+		module.events[event] = func
+		if Event then
+			Event.register(event, func)
+		end
+		return true
+	else
+		log("The event is nil")
+		-- error("The event is nil")
+	end
+	return false
+end
 
 local function reset_compensating_bonus()
-  local count = 1 - global.soft_evolution.compensating_bonus
+  local soft_evolution = global.soft_evolution
+  local count = 1 - soft_evolution.compensating_bonus
   for _, force in pairs(game.forces) do
     if force.ai_controllable and force.evolution_factor > 0.0001 then
       force.evolution_factor = force.evolution_factor * (1 - count)
     end
   end
-  global.soft_evolution.compensating_bonus = 1
+  soft_evolution.compensating_bonus = 1
 end
 
 local function change_evolution_due_research(target, pack)
@@ -140,10 +166,10 @@ local function balance_evolution_from_research()
   end
 
   reset_compensating_bonus()
-  script.raise_event(mod.self_events.on_balance_evolution_from_researche, {})
+  script.raise_event(module.self_events.on_balance_evolution_from_researche, {})
 end
 
-local function init()
+module.on_init = function()
   global.soft_evolution = global.soft_evolution or {}
   local soft_evolution = global.soft_evolution
   soft_evolution.teams = soft_evolution.teams or nil
@@ -169,9 +195,10 @@ local function on_entity_died(event)
     end
   end
 
-  global.soft_evolution.compensating_bonus = global.soft_evolution.compensating_bonus - count
-  if global.soft_evolution.compensating_bonus < 0.5 then
-    global.soft_evolution.compensating_bonus = 0.5
+  local soft_evolution = global.soft_evolution
+  soft_evolution.compensating_bonus = soft_evolution.compensating_bonus - count
+  if soft_evolution.compensating_bonus < 0.5 then
+    soft_evolution.compensating_bonus = 0.5
   end
 end
 
@@ -243,35 +270,35 @@ local function on_runtime_mod_setting_changed(event)
 
   if event.setting == "soft_evolution_from_research" then
     if settings.global[event.setting].value then
-      mod.events.on_research_finished = update_research_timer
-      mod.events.on_forces_merged = update_research_timer
-      mod.events.on_player_changed_force = update_research_timer
-      mod.events.on_technology_effects_reset = balance_evolution_from_research
+      put_event("on_research_finished", update_research_timer)
+      put_event("on_forces_merged", update_research_timer)
+      put_event("on_player_changed_force", update_research_timer)
+      put_event("on_technology_effects_reset", balance_evolution_from_research)
     else
-      mod.events.on_research_finished = function() end
-      mod.events.on_forces_merged = function() end
-      mod.events.on_player_changed_force = function() end
-      mod.events.on_technology_effects_reset = function() end
+      put_event("on_research_finished", function() end)
+      put_event("on_forces_merged", function() end)
+      put_event("on_player_changed_force", function() end)
+      put_event("on_technology_effects_reset", function() end)
     end
   elseif event.setting == "soft_evolution_on_entity_died" then
     if settings.global[event.setting].value then
-      mod.events.on_entity_died = on_entity_died
+      put_event("on_entity_died", on_entity_died)
     else
-      mod.events.on_entity_died = function() end
+      put_event("on_entity_died", function() end)
       reset_compensating_bonus()
     end
   end
 end
 
-local function on_load()
+module.on_load = function()
   if not game then
     if global.soft_evolution == nil then
-      init()
+      module.on_init()
     end
   end
 end
 
-mod.check_researches_on_nth_tick = function()
+module.check_researches_on_nth_tick = function()
   local tick_of_update = global.soft_evolution.tick_of_update
   if not tick_of_update then return end
   if game.tick < tick_of_update then return end
@@ -279,34 +306,31 @@ mod.check_researches_on_nth_tick = function()
   balance_evolution_from_research()
 end
 
-mod.events = {
-  on_init = init,
-  on_load = on_load,
-  on_research_finished = update_research_timer,
-  on_forces_merged = update_research_timer,
-  on_player_changed_force = update_research_timer,
-  on_player_joined_game = check_map_settings,
-  on_player_left_game = check_map_settings,
-  on_rocket_launched = reset_compensating_bonus,
-  on_technology_effects_reset = balance_evolution_from_research,
-  on_entity_died = on_entity_died,
-  on_runtime_mod_setting_changed = on_runtime_mod_setting_changed
-}
+put_event("on_research_finished", update_research_timer)
+put_event("on_forces_merged", update_research_timer)
+put_event("on_player_changed_force", update_research_timer)
+put_event("on_player_joined_game", check_map_settings)
+put_event("on_player_left_game", check_map_settings)
+put_event("on_rocket_launched", reset_compensating_bonus)
+put_event("on_technology_effects_reset", balance_evolution_from_research)
+put_event("on_entity_died", on_entity_died)
+put_event("on_runtime_mod_setting_changed", on_runtime_mod_setting_changed)
+
 if not settings.global["soft_evolution_from_research"].value then
-  mod.events.on_research_finished = function() end
-  mod.events.on_forces_merged = function() end
-  mod.events.on_player_changed_force = function() end
-  mod.events.on_technology_effects_reset = function() end
+  put_event("on_research_finished", function() end)
+  put_event("on_forces_merged", function() end)
+  put_event("on_player_changed_force", function() end)
+  put_event("on_technology_effects_reset", function() end)
 end
 if not settings.global["soft_evolution_on_entity_died"].value then
-  mod.events.on_entity_died = function() end
+  put_event("on_entity_died", function() end)
 end
 
 remote.remove_interface("soft_evolution")
 remote.add_interface("soft_evolution",
 {
   get_event_name = function(name)
-    return mod.self_events[name]
+    return module.self_events[name]
   end,
   get_data = function()
     return global.soft_evolution
@@ -345,4 +369,4 @@ remote.add_interface("soft_evolution",
   balance_evolution_from_research = balance_evolution_from_research
 })
 
-return mod
+return module
