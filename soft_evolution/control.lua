@@ -1,5 +1,5 @@
 --[[
-Copyright (c) 2019 ZwerOxotnik <zweroxotnik@gmail.com>
+Copyright (c) 2019-2020 ZwerOxotnik <zweroxotnik@gmail.com>
 Licensed under the MIT licence;
 Author: ZwerOxotnik
 Version: 1.1.0 (2019-05-03)
