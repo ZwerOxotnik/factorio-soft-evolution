@@ -1,5 +1,5 @@
 --[[
-Copyright (c) 2019-2020 ZwerOxotnik <zweroxotnik@gmail.com>
+Copyright (c) 2019-2020, 2024 ZwerOxotnik <zweroxotnik@gmail.com>
 Licensed under the MIT licence;
 
 You can write and receive any information on the links below.
@@ -9,18 +9,19 @@ Homepage: https://forums.factorio.com/viewtopic.php?f=190&t=64653
 
 ]]--
 
-local module = {}
-module.self_events = require("soft_evolution/self_events")
+local M = {}
+M.self_events = require("soft_evolution/self_events")
+
 
 local function reset_compensating_bonus()
-	local soft_evolution = global.soft_evolution
-	local count = 1 - soft_evolution.compensating_bonus
+	local mod_data = storage.soft_evolution
+	local count = 1 - mod_data.compensating_bonus
 	for _, force in pairs(game.forces) do
-		if force.ai_controllable and force.evolution_factor > 0.0001 then
-			force.evolution_factor = force.evolution_factor * (1 - count)
+		if force.ai_controllable and force.get_evolution_factor() > 0.0001 then
+			force.set_evolution_factor(force.get_evolution_factor() * (1 - count))
 		end
 	end
-	soft_evolution.compensating_bonus = 1
+	mod_data.compensating_bonus = 1
 end
 
 local function change_evolution_due_research(target, pack)
@@ -30,11 +31,11 @@ local function change_evolution_due_research(target, pack)
 	local new_evolution = pack.spended / pack.total
 	local change_evolution = function(force)
 		if settings.global["soft_evolution_factor_decreases"].value then
-			if force.evolution_factor < new_evolution then
-				force.evolution_factor = new_evolution
+			if force.get_evolution_factor() < new_evolution then
+				force.set_evolution_factor(new_evolution)
 			end
 		else
-			force.evolution_factor = new_evolution
+			force.set_evolution_factor(new_evolution)
 		end
 	end
 
@@ -48,7 +49,7 @@ end
 local function count_science_pack(target, max_time_teams)
 	local pack = {}
 	pack.spended = 0
-	pack.total = 0
+	pack.total   = 0
 
 	for _, team in pairs (target) do
 		local force = game.forces[team.name]
@@ -127,31 +128,31 @@ local function check_evolution_due_research(target)
 	local pack = count_science_pack(target, max_time_teams)
 	change_evolution_due_research(target, pack)
 
-	global.soft_evolution.tick_of_update = nil
+	storage.soft_evolution.tick_of_update = nil
 end
 
 local function balance_evolution_from_research()
-	if global.soft_evolution.teams then
-		check_evolution_due_research(global.soft_evolution.teams)
+	if storage.soft_evolution.teams then
+		check_evolution_due_research(storage.soft_evolution.teams)
 	else
 		check_evolution_due_research(game.forces)
 	end
 
 	reset_compensating_bonus()
-	script.raise_event(module.self_events.on_balance_evolution_from_researche, {})
+	script.raise_event(M.self_events.on_balance_evolution_from_researche, {})
 end
 
-module.on_init = function()
-	global.soft_evolution = global.soft_evolution or {}
-	local soft_evolution = global.soft_evolution
-	soft_evolution.teams = soft_evolution.teams or nil
-	soft_evolution.tick_of_update = soft_evolution.tick_of_update -- see function "check_researches_on_nth_tick"
-	soft_evolution.compensating_bonus = soft_evolution.compensating_bonus or 1 -- see event "on_entity_died"
-	soft_evolution.dynamic_bonus = soft_evolution.dynamic_bonus or 1 -- see function "check_map_settings"
+M.on_init = function()
+	storage.soft_evolution = storage.soft_evolution or {}
+	local mod_data = storage.soft_evolution
+	mod_data.teams = mod_data.teams or nil
+	mod_data.tick_of_update = mod_data.tick_of_update -- see function "check_researches_on_nth_tick"
+	mod_data.compensating_bonus = mod_data.compensating_bonus or 1 -- see event "on_entity_died"
+	mod_data.dynamic_bonus = mod_data.dynamic_bonus or 1 -- see function "check_map_settings"
 end
 
 local function update_research_timer()
-	global.soft_evolution.tick_of_update = game.tick + (60 * 60)
+	storage.soft_evolution.tick_of_update = game.tick + (60 * 60)
 end
 
 local function on_entity_died(event)
@@ -167,16 +168,16 @@ local function on_entity_died(event)
 		end
 	end
 
-	local soft_evolution = global.soft_evolution
-	soft_evolution.compensating_bonus = soft_evolution.compensating_bonus - count
-	if soft_evolution.compensating_bonus < 0.5 then
-		soft_evolution.compensating_bonus = 0.5
+	local mod_data = storage.soft_evolution
+	mod_data.compensating_bonus = mod_data.compensating_bonus - count
+	if mod_data.compensating_bonus < 0.5 then
+		mod_data.compensating_bonus = 0.5
 	end
 end
 
 local function change_map_settings()
 	-- Find dynamic bonus
-	local soft_evolution = global.soft_evolution
+	local mod_data = storage.soft_evolution
 	local connected_players = #game.connected_players
 	local dynamic_bonus = (1 + connected_players) / 5
 	if dynamic_bonus > 1.5 then
@@ -184,10 +185,10 @@ local function change_map_settings()
 	elseif dynamic_bonus < 0.5 then
 		dynamic_bonus = 0.5
 	end
-	soft_evolution.dynamic_bonus = dynamic_bonus
+	mod_data.dynamic_bonus = dynamic_bonus
 
 	-- Apply dynamic bonus
-	local original_data = soft_evolution.original
+	local original_data = mod_data.original
 	local map_settings = game.map_settings
 	local enemy_evolution = map_settings.enemy_evolution
 	local enemy_expansion = map_settings.enemy_expansion
@@ -220,7 +221,7 @@ local function check_map_settings(event)
 	if not (player and player.valid) then return end
 
 	-- Check data
-	local original_data = global.soft_evolution.original
+	local original_data = storage.soft_evolution.original
 	if not original_data then
 		original_data = {}
 		local map_settings = game.map_settings
@@ -231,7 +232,7 @@ local function check_map_settings(event)
 		original_data.max_expansion_distance = enemy_expansion.max_expansion_distance
 		original_data.min_expansion_cooldown = enemy_expansion.min_expansion_cooldown
 		original_data.max_expansion_cooldown = enemy_expansion.max_expansion_cooldown
-		global.soft_evolution.original = original_data
+		storage.soft_evolution.original = original_data
 	end
 
 	change_map_settings()
@@ -242,86 +243,86 @@ local function on_runtime_mod_setting_changed(event)
 
 	if event.setting == "soft_evolution_from_research" then
 		if settings.global[event.setting].value then
-			put_event("on_research_finished", update_research_timer)
-			put_event("on_forces_merged", update_research_timer)
-			put_event("on_player_changed_force", update_research_timer)
-			put_event("on_technology_effects_reset", balance_evolution_from_research)
+			script.on_event(defines.events.on_research_finished,    update_research_timer)
+			script.on_event(defines.events.on_forces_merged,        update_research_timer)
+			script.on_event(defines.events.on_player_changed_force, update_research_timer)
+			script.on_event(defines.events.on_technology_effects_reset, balance_evolution_from_research)
 		else
-			put_event("on_research_finished", function() end)
-			put_event("on_forces_merged", function() end)
-			put_event("on_player_changed_force", function() end)
-			put_event("on_technology_effects_reset", function() end)
+			script.on_event(defines.events.on_research_finished,        function() end)
+			script.on_event(defines.events.on_forces_merged,            function() end)
+			script.on_event(defines.events.on_player_changed_force,     function() end)
+			script.on_event(defines.events.on_technology_effects_reset, function() end)
 		end
 	elseif event.setting == "soft_evolution_on_entity_died" then
 		if settings.global[event.setting].value then
-			put_event("on_entity_died", on_entity_died)
+			script.on_event(defines.events.on_entity_died, on_entity_died)
 		else
-			put_event("on_entity_died", function() end)
+			script.on_event(defines.events.on_entity_died, function() end)
 			reset_compensating_bonus()
 		end
 	end
 end
 
-module.on_load = function()
+M.on_load = function()
 	if not game then
-		if global.soft_evolution == nil then
-			module.on_init()
+		if storage.soft_evolution == nil then
+			M.on_init()
 		end
 	end
 end
 
 local function check_researches_on_nth_tick()
-	local tick_of_update = global.soft_evolution.tick_of_update
+	local tick_of_update = storage.soft_evolution.tick_of_update
 	if not tick_of_update then return end
 	if game.tick < tick_of_update then return end
 
 	balance_evolution_from_research()
 end
 
-module.events = {
-	[defines.events.on_research_finished] = update_research_timer,
-	[defines.events.on_forces_merged] = update_research_timer,
-	[defines.events.on_player_changed_force] = update_research_timer,
-	[defines.events.on_player_joined_game] = check_map_settings,
-	[defines.events.on_player_left_game] = check_map_settings,
-	[defines.events.on_rocket_launched] = reset_compensating_bonus,
+M.events = {
+	[defines.events.on_runtime_mod_setting_changed] = on_runtime_mod_setting_changed,
 	[defines.events.on_technology_effects_reset] = balance_evolution_from_research,
+	[defines.events.on_rocket_launched]      = reset_compensating_bonus,
+	[defines.events.on_player_changed_force] = update_research_timer,
+	[defines.events.on_research_finished]    = update_research_timer,
+	[defines.events.on_forces_merged]        = update_research_timer,
+	[defines.events.on_player_joined_game] = check_map_settings,
+	[defines.events.on_player_left_game]   = check_map_settings,
 	[defines.events.on_entity_died] = on_entity_died,
-	[defines.events.on_runtime_mod_setting_changed] = on_runtime_mod_setting_changed
 }
 
 if not settings.global["soft_evolution_from_research"].value then
-	module.events[defines.events.on_research_finished] = function() end
-	module.events[defines.events.on_forces_merged] = function() end
-	module.events[defines.events.on_player_changed_force] = function() end
-	module.events[defines.events.on_technology_effects_reset] = function() end
+	M.events[defines.events.on_research_finished]        = function() end
+	M.events[defines.events.on_forces_merged]            = function() end
+	M.events[defines.events.on_player_changed_force]     = function() end
+	M.events[defines.events.on_technology_effects_reset] = function() end
 end
 if not settings.global["soft_evolution_on_entity_died"].value then
-	module.events[defines.events.on_entity_died] = function() end
+	M.events[defines.events.on_entity_died] = function() end
 end
 
-module.remove_interface = function()
+M.remove_interface = function()
 	remote.remove_interface("soft_evolution")
 end
 
-module.add_interface = function()
+M.add_interface = function()
 	remote.add_interface("soft_evolution",
 	{
 		get_event_name = function(name)
-			return module.self_events[name]
+			return M.self_events[name]
 		end,
 		get_data = function()
-			return global.soft_evolution
+			return storage.soft_evolution
 		end,
 		add_team = function(team)
-			local list = global.soft_evolution.teams
+			local list = storage.soft_evolution.teams
 			table.insert(list, team)
 		end,
 		set_teams = function(teams)
-			global.soft_evolution.teams = teams
+			storage.soft_evolution.teams = teams
 		end,
 		remove_team = function(name)
-			local teams = global.soft_evolution.teams
+			local teams = storage.soft_evolution.teams
 			for k, team in pairs(teams) do
 				if team.name == name then
 					table.remove(teams, k)
@@ -332,7 +333,7 @@ module.add_interface = function()
 			return 0 -- not found
 		end,
 		find_team = function(name)
-			local teams = global.soft_evolution.teams
+			local teams = storage.soft_evolution.teams
 			for k, team in pairs(teams) do
 				if team.name == name then
 					return k
@@ -342,14 +343,14 @@ module.add_interface = function()
 			return 0 -- not found
 		end,
 		delete_teams = function()
-			global.soft_evolution.teams = nil
+			storage.soft_evolution.teams = nil
 		end,
 		balance_evolution_from_research = balance_evolution_from_research
 	})
 end
 
-module.on_nth_tick = {
+M.on_nth_tick = {
 	[60 * 60] = check_researches_on_nth_tick
 }
 
-return module
+return M

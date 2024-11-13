@@ -15,7 +15,7 @@ modules.custom_events.handle_events = function()
 
           -- Attach "on_round_end"
           script.on_event(ID_1, function()
-            local soft_evolution = global.soft_evolution
+            local soft_evolution = storage.soft_evolution
             if remote.interfaces[interface_name] then
               if remote.interfaces[interface_name][interface_function] then
                 soft_evolution.teams = remote.call(interface_name, interface_function)
@@ -25,7 +25,7 @@ modules.custom_events.handle_events = function()
 
           -- Attach "on_round_end"
           script.on_event(ID_2, function()
-            local soft_evolution = global.soft_evolution
+            local soft_evolution = storage.soft_evolution
             if remote.interfaces[interface_name] then
               if remote.interfaces[interface_name][interface_function] then
                 soft_evolution.teams = {}
